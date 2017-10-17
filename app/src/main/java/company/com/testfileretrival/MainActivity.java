@@ -21,42 +21,51 @@ import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Map;
+import java.util.Random;
 import java.util.TreeMap;
 
 public class MainActivity extends AppCompatActivity {
-    private static final int MY_PERMISSION_REQUEST = 1;
+    private ListView listView; // The ListView holding all of the song names
+    private Button rewind; // Button that brings song back to the begining or goes to previous song
+    private Button advance; // Button that advances to the next track
+    private static final int MY_PERMISSION_REQUEST = 1; // Int necessary for retriving data from storage
 
-    ArrayList<String> songInfoList = new ArrayList<>();
+    public int currentPos = 0; // The current song playing is located at this point in the ArrayLists below and in the ListView
 
-    ArrayList<String> musicFiles = new ArrayList<>();
+    public ArrayList<String> songInfoList = new ArrayList<>(); // The name, artist, and album of a song are stored as a string this ArrayList contains those strings
+    public ArrayList<String> musicFiles = new ArrayList<>(); // Filepaths to songs
 
-    ListView listView;
+    public Map<String, String> songToFile = new TreeMap<>(); // Map connecting songInformation to its file path
 
-    Button play;
+    public ArrayAdapter<String> adapter; // ArrayAdapter to place values from songInfoList into ListView
 
-    Button rewind;
+    public MediaPlayer mediaPlayer = new MediaPlayer(); // Universal MediaPlayer for application
 
-    Button advance;
-
-    ArrayAdapter<String> adapter;
-
-    MediaPlayer mediaPlayer = new MediaPlayer();
-
-    Map<String, String> songToFile = new TreeMap<>();
+    public Button play; // Play Button
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+        // Hides the Title Bar from being seen in Application
         this.requestWindowFeature(Window.FEATURE_NO_TITLE);
         getSupportActionBar().hide();
+
+        // Ties xml layout to class
         setContentView(R.layout.activity_main);
 
+        // Find all the buttons in the associated view
         play = (Button) findViewById(R.id.play);
         rewind = (Button) findViewById(R.id.rewind);
         advance = (Button) findViewById(R.id.advance);
 
+        // Find the list view in the associated view
+        listView = (ListView) findViewById(R.id.listView);
+
+        //If everything is set up correctly and the application has access to storage it will begin fetching songs
         if (ContextCompat.checkSelfPermission(MainActivity.this, android.Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
             if (ActivityCompat.shouldShowRequestPermissionRationale(MainActivity.this, android.Manifest.permission.READ_EXTERNAL_STORAGE)) {
                 ActivityCompat.requestPermissions(MainActivity.this, new String[]{android.Manifest.permission.READ_EXTERNAL_STORAGE}, MY_PERMISSION_REQUEST);
@@ -67,6 +76,43 @@ public class MainActivity extends AppCompatActivity {
         }
         else {
             prepareToPlay();
+
+            // To improve user experience a default song is chosen in-case the user hits play without indicating a song
+            try {
+
+                // Sets song to first one in list
+                mediaPlayer.setDataSource(musicFiles.get(0));
+                mediaPlayer.prepare();
+
+                // Listener to pick up when the song is done playing so it can start playing a new one
+                mediaPlayer.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
+
+                    @Override
+                    public void onCompletion(MediaPlayer mp) {
+
+                        // If there is another song next play that, else go back up to the top
+                        try {
+                            mediaPlayer.reset();
+                            if (currentPos + 1 < musicFiles.size()) {
+                                mediaPlayer.setDataSource(musicFiles.get(currentPos + 1));
+                                currentPos += 1;
+                            }
+                            else {
+                                mediaPlayer.setDataSource(musicFiles.get(0));
+                                currentPos = 0;
+                            }
+                            mediaPlayer.prepare();
+                            mediaPlayer.start();
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
+                    }
+
+                });
+                currentPos = 0;
+            }catch (IOException e) {
+                e.printStackTrace();
+            }
         }
     }
 
@@ -74,25 +120,75 @@ public class MainActivity extends AppCompatActivity {
         // Perform action on click
         switch (v.getId()) {
             case R.id.play:
-                if (mediaPlayer.isPlaying()) {
-                    mediaPlayer.pause();
-                    play.setText("Play");
-                } else {
-                    mediaPlayer.start();
-                    play.setText(" | | ");
+
+                // If a song is playing pause it else play whatever song is loaded in the MediaPlayer
+                if (mediaPlayer != null) {
+                    if (mediaPlayer.isPlaying()) {
+                        mediaPlayer.pause();
+                        play.setText("Play");
+                    }
+                    else {
+                        mediaPlayer.start();
+                        play.setText("Pause");
+                    }
                 }
                 break;
             case R.id.advance:
-                //Pick a new index
+
+                // Advances song to next in list
+                mediaPlayer.reset();
+                try {
+                    //ToDo: Implement Smart Shuffle
+                    /*
+
+                    // Create an array where every index is a random integer between 0 and size exclusive, the array is the size of musicFiles
+                    // Make sure there are no doubles
+                    // Find the index the current song is at in the array and set the new song as whatever the next index is
+                    //ie shuffle<2,4,6,3,5,0,1> if at song 4 go to song 6 and so forth
+
+                    */
+                    if (currentPos + 1 < musicFiles.size()) {
+                        mediaPlayer.setDataSource(musicFiles.get(currentPos + 1));
+                        currentPos += 1;
+                    }
+                    else {
+                        mediaPlayer.setDataSource(musicFiles.get(0));
+                        currentPos = 0;
+                    }
+                    mediaPlayer.prepare();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+                mediaPlayer.start();
                 break;
             case R.id.rewind:
-                mediaPlayer.seekTo(0);
+
+                // if a song is more than 1/9 in go back to the beginning else go back to the previous song
+                if (mediaPlayer.getCurrentPosition() > (mediaPlayer.getDuration()/9)) {
+                    mediaPlayer.seekTo(0);
+                }
+                else {
+                    mediaPlayer.reset();
+                    try {
+                        if (currentPos - 1 >= 0) {
+                            mediaPlayer.setDataSource(musicFiles.get(currentPos - 1));
+                            currentPos -= 1;
+                        }
+                        else {
+                            mediaPlayer.setDataSource(musicFiles.get(musicFiles.size()-1));
+                            currentPos = (musicFiles.size()-1);
+                        }
+                        mediaPlayer.prepare();
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                }
+                mediaPlayer.start();
                 break;
         }
     }
 
     public void prepareToPlay() {
-        listView = (ListView) findViewById(R.id.listView);
         getMusic();
         for (String file : songToFile.values()) {
             musicFiles.add(file);
@@ -124,8 +220,9 @@ public class MainActivity extends AppCompatActivity {
                     System.out.println("Exception of type : " + e.toString());
                     e.printStackTrace();
                 }
+                currentPos = position;
                 mediaPlayer.start();
-                play.setText(" | | ");
+                play.setText("Pause");
             }
         });
     }
