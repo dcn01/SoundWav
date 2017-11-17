@@ -3,7 +3,6 @@ package company.com.testfileretrival;
 import android.content.ContentResolver;
 import android.content.pm.PackageManager;
 import android.database.Cursor;
-import android.graphics.Color;
 import android.media.MediaPlayer;
 import android.net.Uri;
 import android.provider.MediaStore;
@@ -11,40 +10,35 @@ import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.support.v7.widget.LinearLayoutManager;
+import android.support.v7.widget.RecyclerView;
 import android.view.View;
-import android.view.ViewGroup;
 import android.view.Window;
-import android.widget.AdapterView;
-import android.widget.ArrayAdapter;
 import android.widget.Button;
-import android.widget.ListView;
-import android.widget.TextView;
 import android.widget.Toast;
-
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Map;
-import java.util.Random;
 import java.util.TreeMap;
 
 public class MainActivity extends AppCompatActivity {
-    private ListView listView; // The ListView holding all of the song names
-    private Button rewind; // Button that brings song back to the begining or goes to previous song
-    private Button advance; // Button that advances to the next track
+    private RecyclerView recyclerView; // The ListView holding all of the song names
     private static final int MY_PERMISSION_REQUEST = 1; // Int necessary for retriving data from storage
 
     public int currentPos = 0; // The current song playing is located at this point in the ArrayLists below and in the ListView
 
     public ArrayList<String> songInfoList = new ArrayList<>(); // The name, artist, and album of a song are stored as a string this ArrayList contains those strings
-    public ArrayList<String> musicFiles = new ArrayList<>(); // Filepaths to songs
+    public static ArrayList<String> musicFiles = new ArrayList<>(); // Filepaths to songs
 
     public Map<String, String> songToFile = new TreeMap<>(); // Map connecting songInformation to its file path
 
-    public ArrayAdapter<String> adapter; // ArrayAdapter to place values from songInfoList into ListView
+    public static MediaPlayer mediaPlayer = new MediaPlayer(); // Universal MediaPlayer for application
 
-    public MediaPlayer mediaPlayer = new MediaPlayer(); // Universal MediaPlayer for application
+    public static Button play; // Play Button
 
-    public Button play; // Play Button
+    public ArrayList<SongInfo> mySongs = new ArrayList<>();
+
+    private SongsAdapter songsAdapter;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -59,11 +53,11 @@ public class MainActivity extends AppCompatActivity {
 
         // Find all the buttons in the associated view
         play = (Button) findViewById(R.id.play);
-        rewind = (Button) findViewById(R.id.rewind);
-        advance = (Button) findViewById(R.id.advance);
 
         // Find the list view in the associated view
-        listView = (ListView) findViewById(R.id.listView);
+        recyclerView = (RecyclerView) findViewById(R.id.recyclerView);
+
+        songsAdapter = new SongsAdapter(mySongs, this);
 
         //If everything is set up correctly and the application has access to storage it will begin fetching songs
         if (ContextCompat.checkSelfPermission(MainActivity.this, android.Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
@@ -116,6 +110,30 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    public static void play(int position) {
+        try {
+            mediaPlayer.reset();
+            mediaPlayer.setDataSource(musicFiles.get(position));
+            mediaPlayer.prepare();
+            mediaPlayer.start();
+            play.setText("Pause");
+        } catch (IOException e){
+            e.printStackTrace();
+        }
+    }
+
+    public static void pause() {
+            mediaPlayer.pause();
+            play.setText("Play");
+    }
+
+    public static boolean isPlaying() {
+        return (mediaPlayer.isPlaying());
+    }
+
+
+    //return ((Math.max(arg1,arg2) == arg1) ? firstSeq : secondSeq;
+
     public void onClick(View v) {
         // Perform action on click
         switch (v.getId()) {
@@ -159,6 +177,7 @@ public class MainActivity extends AppCompatActivity {
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
+                play.setText("Pause");
                 mediaPlayer.start();
                 break;
             case R.id.rewind:
@@ -193,21 +212,26 @@ public class MainActivity extends AppCompatActivity {
         for (String file : songToFile.values()) {
             musicFiles.add(file);
         }
+
+
+        SongInfo test = new SongInfo();
+        test.setAlbum("MEME");
+        test.setArtist("George Michaels");
+        test.setTitle("Careless Whisper");
+        for (int x = 0; x < musicFiles.size(); x ++) {
+            mySongs.add(test);
+            songsAdapter.notifyDataSetChanged();
+        }
+
+
         for (String song : songToFile.keySet()) {
             songInfoList.add(song);
         }
-        adapter = new ArrayAdapter<String>(this, android.R.layout.simple_list_item_1, songInfoList){
-            @Override
-            public View getView(int position, View convertView, ViewGroup parent) {
-                View view = super.getView(position, convertView, parent);
-                TextView text = (TextView) view.findViewById(android.R.id.text1);
-                text.setTextColor(Color.WHITE);
-                return view;
-            }
-        };
-        listView.setAdapter(adapter);
+        recyclerView.setAdapter(songsAdapter);
+        recyclerView.setLayoutManager(new LinearLayoutManager(this, LinearLayoutManager.VERTICAL, false));
+        //songsAdapter.notifyDataSetChanged();
 
-        listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+        /*listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
                 try {
@@ -224,7 +248,7 @@ public class MainActivity extends AppCompatActivity {
                 mediaPlayer.start();
                 play.setText("Pause");
             }
-        });
+        });*/
     }
 
     public void getMusic() {
