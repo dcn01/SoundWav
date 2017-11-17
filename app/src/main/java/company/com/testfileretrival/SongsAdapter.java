@@ -58,30 +58,34 @@ public class SongsAdapter extends RecyclerView.Adapter<SongsAdapter.ViewHolder> 
         final SongInfo song = songs.get(position);
 
         holder.titleView.setText(song.getTitle());
-        holder.titleView.setTextColor(Color.BLACK);
+        holder.titleView.setTextColor(Color.WHITE);
 
         holder.artistView.setText(song.getArtist());
-        holder.artistView.setTextColor(Color.BLACK);
+        holder.artistView.setTextColor(Color.WHITE);
 
         holder.albumView.setText(song.getAlbum());
-        holder.albumView.setTextColor(Color.BLACK);
+        holder.albumView.setTextColor(Color.WHITE);
+
+        holder.by.setTextColor(Color.WHITE);
 
         holder.playpause.setOnClickListener(new View.OnClickListener(){
 
             @Override
             public void onClick(View view) {
                 if (viewHolder != holder && viewHolder != null) {
-                    viewHolder.titleView.setTextColor(Color.BLACK);
-                    viewHolder.albumView.setTextColor(Color.BLACK);
-                    viewHolder.artistView.setTextColor(Color.BLACK);
+                    viewHolder.titleView.setTextColor(Color.WHITE);
+                    viewHolder.albumView.setTextColor(Color.WHITE);
+                    viewHolder.artistView.setTextColor(Color.WHITE);
+                    viewHolder.by.setTextColor(Color.WHITE);
 
                 }
 
                 if (MainActivity.isPlaying() && viewHolder == holder) {
                     holder.playpause.setText("Play");
-                    holder.titleView.setTextColor(Color.BLACK);
-                    holder.albumView.setTextColor(Color.BLACK);
-                    holder.artistView.setTextColor(Color.BLACK);
+                    holder.titleView.setTextColor(Color.WHITE);
+                    holder.albumView.setTextColor(Color.WHITE);
+                    holder.artistView.setTextColor(Color.WHITE);
+                    holder.by.setTextColor(Color.WHITE);
                     MainActivity.pause();
                 }
                 else {
@@ -92,6 +96,7 @@ public class SongsAdapter extends RecyclerView.Adapter<SongsAdapter.ViewHolder> 
                     holder.titleView.setTextColor(Color.CYAN);
                     holder.albumView.setTextColor(Color.CYAN);
                     holder.artistView.setTextColor(Color.CYAN);
+                    holder.by.setTextColor(Color.CYAN);
                     MainActivity.play(position);
                 }
                 viewHolder = holder;
@@ -138,6 +143,7 @@ public class SongsAdapter extends RecyclerView.Adapter<SongsAdapter.ViewHolder> 
         public TextView titleView;
         public TextView artistView;
         public TextView albumView;
+        public TextView by;
         public Button playpause;
 
         public ViewHolder(View itemView) {
@@ -147,6 +153,7 @@ public class SongsAdapter extends RecyclerView.Adapter<SongsAdapter.ViewHolder> 
             artistView = (TextView) itemView.findViewById(R.id.artist);
             albumView = (TextView)itemView.findViewById(R.id.album);
             playpause = (Button)itemView.findViewById(R.id.play);
+            by = (TextView)itemView.findViewById(R.id.byText);
         }
     }
 }

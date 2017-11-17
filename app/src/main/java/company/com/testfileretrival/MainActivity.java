@@ -18,6 +18,8 @@ import android.widget.Button;
 import android.widget.Toast;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
@@ -25,7 +27,7 @@ public class MainActivity extends AppCompatActivity {
     private RecyclerView recyclerView; // The ListView holding all of the song names
     private static final int MY_PERMISSION_REQUEST = 1; // Int necessary for retriving data from storage
 
-    public int currentPos = 0; // The current song playing is located at this point in the ArrayLists below and in the ListView
+    public static int currentPos = 0; // The current song playing is located at this point in the ArrayLists below and in the ListView
 
     public ArrayList<String> songInfoList = new ArrayList<>(); // The name, artist, and album of a song are stored as a string this ArrayList contains those strings
     public static ArrayList<String> musicFiles = new ArrayList<>(); // Filepaths to songs
@@ -36,9 +38,13 @@ public class MainActivity extends AppCompatActivity {
 
     public static Button play; // Play Button
 
-    public ArrayList<SongInfo> mySongs = new ArrayList<>();
+    public ArrayList<SongInfo> allSongs = new ArrayList<>();
 
     private SongsAdapter songsAdapter;
+
+    public ArrayList<String> fullSongInfo = new ArrayList<>();
+
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -57,7 +63,7 @@ public class MainActivity extends AppCompatActivity {
         // Find the list view in the associated view
         recyclerView = (RecyclerView) findViewById(R.id.recyclerView);
 
-        songsAdapter = new SongsAdapter(mySongs, this);
+        songsAdapter = new SongsAdapter(allSongs, this);
 
         //If everything is set up correctly and the application has access to storage it will begin fetching songs
         if (ContextCompat.checkSelfPermission(MainActivity.this, android.Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
@@ -116,6 +122,7 @@ public class MainActivity extends AppCompatActivity {
             mediaPlayer.setDataSource(musicFiles.get(position));
             mediaPlayer.prepare();
             mediaPlayer.start();
+            currentPos = position;
             play.setText("Pause");
         } catch (IOException e){
             e.printStackTrace();
@@ -207,48 +214,32 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    public void addSongsToArray() {
+        Collections.sort(fullSongInfo);
+        for (int x = 0; x < musicFiles.size(); x++) {
+            String[] audioInfo = fullSongInfo.get(x).split("###");
+            SongInfo songInfo = new SongInfo();
+            songInfo.setTitle(audioInfo[0]);
+            songInfo.setArtist(audioInfo[2]);
+            songInfo.setAlbum(audioInfo[1]);
+            allSongs.add(songInfo);
+            songsAdapter.notifyDataSetChanged();
+        }
+    }
+
     public void prepareToPlay() {
         getMusic();
         for (String file : songToFile.values()) {
             musicFiles.add(file);
         }
 
-
-        SongInfo test = new SongInfo();
-        test.setAlbum("MEME");
-        test.setArtist("George Michaels");
-        test.setTitle("Careless Whisper");
-        for (int x = 0; x < musicFiles.size(); x ++) {
-            mySongs.add(test);
-            songsAdapter.notifyDataSetChanged();
-        }
-
+        addSongsToArray();
 
         for (String song : songToFile.keySet()) {
             songInfoList.add(song);
         }
         recyclerView.setAdapter(songsAdapter);
         recyclerView.setLayoutManager(new LinearLayoutManager(this, LinearLayoutManager.VERTICAL, false));
-        //songsAdapter.notifyDataSetChanged();
-
-        /*listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
-            @Override
-            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-                try {
-                    mediaPlayer.reset();
-                    mediaPlayer.setDataSource(musicFiles.get(position));
-                    mediaPlayer.prepare();
-                } catch (IllegalArgumentException e) {
-                    e.printStackTrace();
-                } catch (Exception e) {
-                    System.out.println("Exception of type : " + e.toString());
-                    e.printStackTrace();
-                }
-                currentPos = position;
-                mediaPlayer.start();
-                play.setText("Pause");
-            }
-        });*/
     }
 
     public void getMusic() {
@@ -266,6 +257,8 @@ public class MainActivity extends AppCompatActivity {
                 String currentAlbum = songCursor.getString(songAlbum);
                 String fileTo = songCursor.getString(filePath);
                 if (!currentTitle.contains("Facebook") && !currentTitle.contains("Hang")) {
+                    String full = currentTitle + "###" + currentAlbum + "###" + currentArtist;
+                    fullSongInfo.add(full);
                     songToFile.put((currentTitle + "\n" + currentArtist + " - " + currentAlbum), fileTo);
                 }
             } while (songCursor.moveToNext());
