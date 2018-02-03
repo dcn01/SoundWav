@@ -68,6 +68,8 @@ public class SongsAdapter extends RecyclerView.Adapter<SongsAdapter.ViewHolder> 
 
         holder.by.setTextColor(Color.WHITE);
 
+        MainActivity.songItems.add(holder);
+
         holder.playpause.setOnClickListener(new View.OnClickListener(){
 
             @Override
@@ -82,10 +84,10 @@ public class SongsAdapter extends RecyclerView.Adapter<SongsAdapter.ViewHolder> 
 
                 if (MainActivity.isPlaying() && viewHolder == holder) {
                     holder.playpause.setText("Play");
-                    holder.titleView.setTextColor(Color.WHITE);
-                    holder.albumView.setTextColor(Color.WHITE);
-                    holder.artistView.setTextColor(Color.WHITE);
-                    holder.by.setTextColor(Color.WHITE);
+                    //holder.titleView.setTextColor(Color.WHITE);
+                    //holder.albumView.setTextColor(Color.WHITE);
+                    //holder.artistView.setTextColor(Color.WHITE);
+                    //holder.by.setTextColor(Color.WHITE);
                     MainActivity.pause();
                 }
                 else {

@@ -3,6 +3,7 @@ package company.com.testfileretrival;
 import android.content.ContentResolver;
 import android.content.pm.PackageManager;
 import android.database.Cursor;
+import android.graphics.Color;
 import android.media.MediaPlayer;
 import android.net.Uri;
 import android.provider.MediaStore;
@@ -19,7 +20,6 @@ import android.widget.Toast;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
@@ -44,6 +44,8 @@ public class MainActivity extends AppCompatActivity {
 
     public ArrayList<String> fullSongInfo = new ArrayList<>();
 
+    public static ArrayList<SongsAdapter.ViewHolder> songItems = new ArrayList<>();
+
 
 
     @Override
@@ -52,7 +54,11 @@ public class MainActivity extends AppCompatActivity {
 
         // Hides the Title Bar from being seen in Application
         this.requestWindowFeature(Window.FEATURE_NO_TITLE);
-        getSupportActionBar().hide();
+        try {
+            getSupportActionBar().hide();
+        } catch (NullPointerException e) {
+            e.printStackTrace();
+        }
 
         // Ties xml layout to class
         setContentView(R.layout.activity_main);
@@ -101,8 +107,9 @@ public class MainActivity extends AppCompatActivity {
                                 mediaPlayer.setDataSource(musicFiles.get(0));
                                 currentPos = 0;
                             }
-                            mediaPlayer.prepare();
-                            mediaPlayer.start();
+                            songItems.get(currentPos).playpause.callOnClick();
+                            //mediaPlayer.prepare();
+                            //mediaPlayer.start();
                         } catch (IOException e) {
                             e.printStackTrace();
                         }
@@ -116,11 +123,17 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    /*
+        This method is called from SongsAdapter, when a song item's onClick is called this
+        manipulates the media player to play the selected song
+     */
     public static void play(int position) {
         try {
-            mediaPlayer.reset();
-            mediaPlayer.setDataSource(musicFiles.get(position));
-            mediaPlayer.prepare();
+            if (position != currentPos) {
+                mediaPlayer.reset();
+                mediaPlayer.setDataSource(musicFiles.get(position));
+                mediaPlayer.prepare();
+            }
             mediaPlayer.start();
             currentPos = position;
             play.setText("Pause");
@@ -129,18 +142,24 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    /*
+        This method pauses the playing song
+     */
     public static void pause() {
             mediaPlayer.pause();
             play.setText("Play");
     }
 
+    /*
+        This method returns whether or not a song is currently playing
+     */
     public static boolean isPlaying() {
         return (mediaPlayer.isPlaying());
     }
 
-
-    //return ((Math.max(arg1,arg2) == arg1) ? firstSeq : secondSeq;
-
+    /*
+        Executes the behavior of the three buttons on the bottom of the screen
+     */
     public void onClick(View v) {
         // Perform action on click
         switch (v.getId()) {
@@ -151,10 +170,12 @@ public class MainActivity extends AppCompatActivity {
                     if (mediaPlayer.isPlaying()) {
                         mediaPlayer.pause();
                         play.setText("Play");
+                        songItems.get(currentPos).playpause.setText("Play");
                     }
                     else {
                         mediaPlayer.start();
                         play.setText("Pause");
+                        songItems.get(currentPos).playpause.setText("Pause");
                     }
                 }
                 break;
@@ -172,20 +193,20 @@ public class MainActivity extends AppCompatActivity {
                     //ie shuffle<2,4,6,3,5,0,1> if at song 4 go to song 6 and so forth
 
                     */
+                    int temp = currentPos;
                     if (currentPos + 1 < musicFiles.size()) {
                         mediaPlayer.setDataSource(musicFiles.get(currentPos + 1));
-                        currentPos += 1;
+                        temp += 1;
                     }
                     else {
                         mediaPlayer.setDataSource(musicFiles.get(0));
-                        currentPos = 0;
+                        temp = 0;
                     }
-                    mediaPlayer.prepare();
+                    songItems.get(temp).playpause.callOnClick();
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
                 play.setText("Pause");
-                mediaPlayer.start();
                 break;
             case R.id.rewind:
 
@@ -196,24 +217,30 @@ public class MainActivity extends AppCompatActivity {
                 else {
                     mediaPlayer.reset();
                     try {
+                        int temp = currentPos;
                         if (currentPos - 1 >= 0) {
                             mediaPlayer.setDataSource(musicFiles.get(currentPos - 1));
-                            currentPos -= 1;
+                            temp -= 1;
+                            songItems.get(temp).playpause.callOnClick();
                         }
                         else {
                             mediaPlayer.setDataSource(musicFiles.get(musicFiles.size()-1));
-                            currentPos = (musicFiles.size()-1);
+                            temp = (musicFiles.size()-1);
+                            songItems.get(temp).playpause.callOnClick();
                         }
-                        mediaPlayer.prepare();
+                        //mediaPlayer.prepare();
                     } catch (IOException e) {
                         e.printStackTrace();
                     }
                 }
-                mediaPlayer.start();
+                //mediaPlayer.start();
                 break;
         }
     }
 
+    /*
+        Translates song information gathered from storage query into array of song objects
+     */
     public void addSongsToArray() {
         Collections.sort(fullSongInfo);
         for (int x = 0; x < musicFiles.size(); x++) {
@@ -227,6 +254,9 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    /*
+        Prepares storage query and connects to list adapter
+     */
     public void prepareToPlay() {
         getMusic();
         for (String file : songToFile.values()) {
@@ -242,6 +272,9 @@ public class MainActivity extends AppCompatActivity {
         recyclerView.setLayoutManager(new LinearLayoutManager(this, LinearLayoutManager.VERTICAL, false));
     }
 
+    /*
+        Searches storage for music
+     */
     public void getMusic() {
         ContentResolver contentResolver = getContentResolver();
         Uri songUri = MediaStore.Audio.Media.EXTERNAL_CONTENT_URI;
@@ -263,8 +296,16 @@ public class MainActivity extends AppCompatActivity {
                 }
             } while (songCursor.moveToNext());
         }
+        try {
+            songCursor.close();
+        } catch (NullPointerException e) {
+            e.printStackTrace();
+        }
     }
 
+    /*
+        Checks to make sure user has given permission to the application to search storage
+     */
     @Override
     public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
         switch (requestCode) {
@@ -280,7 +321,6 @@ public class MainActivity extends AppCompatActivity {
                     Toast.makeText(this, "Permission Denied", Toast.LENGTH_SHORT).show();
                     finish();
                 }
-                return;
             }
         }
     }
